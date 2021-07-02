@@ -25,7 +25,8 @@ setup(
         'dev': [
             'pytest>=4.6.9',
             'coverage~=5.0.4',
-            'sqlalchemy-utils~=0.36.3',
+            # for sqlalchemy1.4 >= 0.37 is required
+            'sqlalchemy-utils>=0.36.3',
             'flake8',
             'restructuredtext-lint',
             'Pygments',
@@ -42,10 +43,11 @@ setup(
         "Operating System :: OS Independent",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
         "Topic :: Database",
         "Topic :: Database :: Front-Ends",
         "Topic :: Software Development :: Libraries :: Python Modules",
