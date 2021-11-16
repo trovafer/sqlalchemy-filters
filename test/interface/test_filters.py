@@ -3,14 +3,15 @@
 import datetime
 
 import pytest
-from six import string_types
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload
+from sqlalchemy.sql import select
 
 from sqlalchemy_filters import apply_filters
 from sqlalchemy_filters.exceptions import (
     BadFilterFormat, BadSpec, FieldNotFound
 )
+from sqlalchemy_filters.models import sqlalchemy_version_cmp
 
 from test.models import Foo, Bar, Qux, Corge
 
@@ -805,7 +806,7 @@ class TestTimeFields:
     )
     @pytest.mark.usefixtures('multiple_quxs_inserted')
     def test_filter_time_equality(self, session, is_sqlite, value):
-        if isinstance(value, string_types) and is_sqlite:
+        if isinstance(value, str) and is_sqlite:
             pytest.skip(STRING_DATE_TIME_NOT_SUPPORTED)
 
         query = session.query(Qux)
@@ -826,7 +827,7 @@ class TestTimeFields:
     )
     @pytest.mark.usefixtures('multiple_quxs_inserted')
     def test_filter_multiple_times(self, session, is_sqlite, value):
-        if isinstance(value, string_types) and is_sqlite:
+        if isinstance(value, str) and is_sqlite:
             pytest.skip(STRING_DATE_TIME_NOT_SUPPORTED)
 
         query = session.query(Qux)
@@ -867,7 +868,7 @@ class TestDateTimeFields:
     )
     @pytest.mark.usefixtures('multiple_quxs_inserted')
     def test_filter_datetime_equality(self, session, is_sqlite, value):
-        if isinstance(value, string_types) and is_sqlite:
+        if isinstance(value, str) and is_sqlite:
             pytest.skip(STRING_DATE_TIME_NOT_SUPPORTED)
 
         query = session.query(Qux)
@@ -895,7 +896,7 @@ class TestDateTimeFields:
     )
     @pytest.mark.usefixtures('multiple_quxs_inserted')
     def test_filter_multiple_datetimes(self, session, is_sqlite, value):
-        if isinstance(value, string_types) and is_sqlite:
+        if isinstance(value, str) and is_sqlite:
             pytest.skip(STRING_DATE_TIME_NOT_SUPPORTED)
 
         query = session.query(Qux)
@@ -1316,3 +1317,27 @@ class TestHybridAttributes:
         assert set(map(type, quxs)) == {Qux}
         assert {qux.id for qux in quxs} == {4}
         assert {qux.three_times_count() for qux in quxs} == {45}
+
+
+class TestSelectObject:
+
+    @pytest.mark.usefixtures('multiple_foos_inserted')
+    def test_filter_on_select(self, session):
+        if sqlalchemy_version_cmp('<', '1.4'):
+            pytest.skip("Sqlalchemy select style 2.0 not supported")
+
+        query = select(Foo)
+        filters = [
+            {
+                'model': 'Bar',
+                'field': 'name',
+                'op': '==',
+                'value': 'name_2'
+            }
+        ]
+
+        query = apply_filters(query, filters)
+        result = session.execute(query).fetchall()
+
+        assert len(result) == 1
+        assert result[0][0].name == 'name_2'

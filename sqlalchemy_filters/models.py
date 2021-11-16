@@ -1,10 +1,23 @@
+import operator
+
+from sqlalchemy import __version__ as sqlalchemy_version
 from sqlalchemy.exc import InvalidRequestError
+from sqlalchemy.orm import mapperlib
 from sqlalchemy.inspection import inspect
-from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.util import symbol
 import types
 
 from .exceptions import BadQuery, FieldNotFound, BadSpec
+
+
+def sqlalchemy_version_cmp(op, version):
+    """compares sqla version < version"""
+
+    ops = {'<': operator.lt, '>=': operator.ge}
+    return ops[op](
+        tuple(sqlalchemy_version.split('.')),
+        tuple(version.split('.'))
+    )
 
 
 class Field(object):
@@ -51,7 +64,17 @@ def _is_hybrid_method(orm_descriptor):
     return orm_descriptor.extension_type == symbol('HYBRID_METHOD')
 
 
-def get_query_models(query):
+def get_model_from_table(table):  # pragma: nocover
+    """Resolve model class from table object"""
+
+    for registry in mapperlib._all_registries():
+        for mapper in registry.mappers:
+            if table in mapper.tables:
+                return mapper.class_
+    return None
+
+
+def get_query_models(query):  # pragma: nocover
     """Get models from query.
 
     :param query:
@@ -61,22 +84,34 @@ def get_query_models(query):
         A dictionary with all the models included in the query.
     """
     models = [col_desc['entity'] for col_desc in query.column_descriptions]
-    models.extend(mapper.class_ for mapper in query._join_entities)
+
+    # account joined entities
+    if sqlalchemy_version_cmp('<', '1.4'):
+        models.extend(mapper.class_ for mapper in query._join_entities)
+    else:
+        try:
+            models.extend(
+                mapper.class_
+                for mapper
+                in query._compile_state()._join_entities
+            )
+        except (InvalidRequestError, AttributeError):
+            # query might not contain columns yet, hence cannot be compiled
+            # or query might be a sqla2.0 select statement
+            pass
+        # also try to infer the models from various internals
+        for table_tuple in query._setup_joins + query._legacy_setup_joins:
+            models.append(get_model_from_table(table_tuple[0]))
 
     # account also query.select_from entities
-    if (
-        hasattr(query, '_select_from_entity') and
-        (query._select_from_entity is not None)
-    ):
-        model_class = (
-            query._select_from_entity.class_
-            if isinstance(query._select_from_entity, Mapper)  # sqlalchemy>=1.1
-            else query._select_from_entity  # sqlalchemy==1.0
-        )
-        if model_class not in models:
-            models.append(model_class)
+    if sqlalchemy_version_cmp('<', '1.4'):
+        if query._select_from_entity:
+            models.append(query._select_from_entity.class_)
+    else:
+        if query._from_obj:
+            models.append(get_model_from_table(query._from_obj[0]))
 
-    return {model.__name__: model for model in models}
+    return {model.__name__: model for model in models if model is not None}
 
 
 def get_model_from_spec(spec, query, default_model=None):
@@ -152,13 +187,27 @@ def auto_join(query, *model_names):
     """
     # every model has access to the registry, so we can use any from the query
     query_models = get_query_models(query).values()
-    model_registry = list(query_models)[-1]._decl_class_registry
+    last_model = list(query_models)[-1]
+    model_registry = (
+        last_model._decl_class_registry
+        if sqlalchemy_version_cmp('<', '1.4')
+        else last_model.registry._class_registry
+    )
 
     for name in model_names:
         model = get_model_class_by_name(model_registry, name)
-        if model not in get_query_models(query).values():
+        if model and (model not in get_query_models(query).values()):
             try:
-                query = query.join(model)
+                tmp = query.join(model)
+                if (
+                    sqlalchemy_version_cmp('>=', '1.4')
+                    and hasattr(tmp, '_compile_state')
+                ):  # pragma: nocover
+                    # https://docs.sqlalchemy.org/en/14/changelog/migration_14.html
+                    # Many Core and ORM statement objects now perform much of
+                    # their construction and validation in the compile phase
+                    tmp._compile_state()
+                query = tmp
             except InvalidRequestError:
                 pass  # can't be autojoined
     return query
