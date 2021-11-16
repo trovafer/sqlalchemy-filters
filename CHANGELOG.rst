@@ -13,6 +13,7 @@ Unreleased
 * drop support for old sqlachemy and python
 * add sqlalchemy 1.4 support
 * add inferring model names from sqla1.4 (2.0 style) select object
+* handle sqlalchemy table resolution with postprocessing cleanup; thanks to @javimudi
 
 0.12.0
 ------
