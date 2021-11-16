@@ -4,7 +4,6 @@ from collections.abc import Iterable
 from inspect import signature
 from itertools import chain
 
-from six import string_types
 from sqlalchemy import and_, or_, not_, func
 
 from .exceptions import BadFilterFormat
@@ -132,7 +131,7 @@ def _is_iterable_filter(filter_spec):
     """
     return (
         isinstance(filter_spec, Iterable) and
-        not isinstance(filter_spec, (string_types, dict))
+        not isinstance(filter_spec, (str, dict))
     )
 
 
