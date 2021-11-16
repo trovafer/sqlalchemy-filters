@@ -4,6 +4,15 @@ Release Notes
 Here you can see the full list of changes between sqlalchemy-filters
 versions, where semantic versioning is used: *major.minor.patch*.
 
+0.13.0
+------
+
+Unreleased
+
+* add github actions ci, remove travis
+* drop support for old sqlachemy and python
+* add sqlalchemy 1.4 support
+* add inferring model names from sqla1.4 (2.0 style) select object
 
 0.12.0
 ------
