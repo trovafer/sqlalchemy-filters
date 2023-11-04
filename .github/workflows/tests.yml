@@ -36,19 +36,18 @@ jobs:
           # sqlalchemylatest (i.e. > 2.0.0) is not yet supported
           # for any version of python
 
-          - {python: '3.7', tox: "py37-sqlalchemy1.0"}
+          # sqlalchemy < 1.1 does not support JSON
+
           - {python: '3.7', tox: "py37-sqlalchemy1.1"}
           - {python: '3.7', tox: "py37-sqlalchemy1.2"}
           - {python: '3.7', tox: "py37-sqlalchemy1.3"}
           - {python: '3.7', tox: "py37-sqlalchemy1.4"}
 
-          - {python: '3.8', tox: "py38-sqlalchemy1.0"}
           - {python: '3.8', tox: "py38-sqlalchemy1.1"}
           - {python: '3.8', tox: "py38-sqlalchemy1.2"}
           - {python: '3.8', tox: "py38-sqlalchemy1.3"}
           - {python: '3.8', tox: "py38-sqlalchemy1.4"}
 
-          - {python: '3.9', tox: "py39-sqlalchemy1.0"}
           - {python: '3.9', tox: "py39-sqlalchemy1.1"}
           - {python: '3.9', tox: "py39-sqlalchemy1.2"}
           - {python: '3.9', tox: "py39-sqlalchemy1.3"}

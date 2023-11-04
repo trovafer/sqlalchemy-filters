@@ -14,11 +14,15 @@ from sqlalchemy_filters.exceptions import (
 )
 from sqlalchemy_filters.models import sqlalchemy_version_cmp
 
-from test.models import Foo, Bar, Qux, Corge
+from test.models import Foo, Bar, Qux, Corge, Grault
 
 
 ARRAY_NOT_SUPPORTED = (
     "ARRAY type and operators supported only by PostgreSQL"
+)
+
+JSON_NOT_SUPPORTED = (
+    "JSON columns not supported until SQLAlchemy 1.4"
 )
 
 
@@ -85,6 +89,14 @@ def multiple_corges_inserted(session, is_postgresql):
         corge_4 = Corge(id=4, name='name_4', tags=['bar', 'baz'])
         session.add_all([corge_1, corge_2, corge_3, corge_4])
         session.commit()
+
+
+@pytest.fixture
+def multiple_graults_inserted(session):
+    grault_1 = Grault(id=1, name='name_1', data={"dkey1": "1"})
+    grault_2 = Grault(id=2, name='name_2', data={"dkey2": 2})
+    session.add_all([grault_1, grault_2])
+    session.commit()
 
 
 class TestFiltersNotApplied:
@@ -683,6 +695,36 @@ class TestApplyNotILikeFilter:
         assert len(result) == 2
         assert result[0].id == 2
         assert result[1].id == 4
+
+
+class TestApplyAsTextILikeFilter:
+
+    @pytest.mark.skipif(sqlalchemy_version_cmp('<', '1.3'), reason=JSON_NOT_SUPPORTED)
+    @pytest.mark.usefixtures('multiple_graults_inserted')
+    def test_one_filter_applied_to_a_single_model(self, session):
+        query = session.query(Grault)
+        filters = [{'field': 'data', 'op': 'astext_ilike', 'value': '%dkey1%'}]
+
+        filtered_query = apply_filters(query, filters)
+        result = filtered_query.all()
+
+        assert len(result) == 1
+        assert result[0].id == 1
+
+
+class TestApplyAsTextNotILikeFilter:
+
+    @pytest.mark.skipif(sqlalchemy_version_cmp('<', '1.3'), reason=JSON_NOT_SUPPORTED)
+    @pytest.mark.usefixtures('multiple_graults_inserted')
+    def test_one_filter_applied_to_a_single_model(self, session):
+        query = session.query(Grault)
+        filters = [{'field': 'data', 'op': 'astext_not_ilike', 'value': '%dkey1%'}]
+
+        filtered_query = apply_filters(query, filters)
+        result = filtered_query.all()
+
+        assert len(result) == 1
+        assert result[0].id == 2
 
 
 class TestApplyInFilter:

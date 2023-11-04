@@ -5,7 +5,7 @@ from inspect import signature
 from itertools import chain
 
 from six import string_types
-from sqlalchemy import and_, or_, not_, func
+from sqlalchemy import and_, or_, not_, func, String
 
 from .exceptions import BadFilterFormat
 from .models import Field, auto_join, get_model_from_spec, get_default_model
@@ -44,6 +44,8 @@ class Operator(object):
         'like': lambda f, a: f.like(a),
         'ilike': lambda f, a: f.ilike(a),
         'not_ilike': lambda f, a: ~f.ilike(a),
+        'astext_ilike': lambda f, a: func.cast(f, String).ilike(a),
+        'astext_not_ilike': lambda f, a: ~func.cast(f, String).ilike(a),
         'in': lambda f, a: f.in_(a),
         'not_in': lambda f, a: ~f.in_(a),
         'any': lambda f, a: f.any(a),

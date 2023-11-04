@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from sqlalchemy import (
-    Column, Date, DateTime, ForeignKey, Integer, String, Time
+    Column, Date, DateTime, ForeignKey, Integer, JSON, String, Time
 )
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.ext.declarative import declarative_base
@@ -25,6 +25,7 @@ class Base(object):
 
 Base = declarative_base(cls=Base)
 BasePostgresqlSpecific = declarative_base(cls=Base)
+BaseJSONAwareSqlalchemy = declarative_base(cls=Base)
 
 
 class Foo(Base):
@@ -62,3 +63,10 @@ class Corge(BasePostgresqlSpecific):
     __tablename__ = 'corge'
 
     tags = Column(ARRAY(String, dimensions=1))
+
+
+class Grault(BaseJSONAwareSqlalchemy):
+
+    __tablename__ = 'grault'
+
+    data = Column(JSON)
