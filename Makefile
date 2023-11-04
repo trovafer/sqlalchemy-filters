@@ -20,6 +20,7 @@ coverage: flake8 rst-lint
 
 
 # Docker test containers
+containers: mysql-container postgres-container
 
 mysql-container:
 	docker run -d --rm --name mysql-sqlalchemy-filters -p 3306:3306 \
