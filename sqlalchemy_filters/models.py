@@ -208,11 +208,19 @@ def auto_join(query, *model_names):
         else last_model.registry._class_registry
     )
 
+    relationships_registry = {}
+    for _, rel in last_model.__mapper__.relationships.items():
+        relationships_registry[rel.mapper.class_.__name__] = rel.secondary
+
     for name in model_names:
         model = get_model_class_by_name(model_registry, name)
         if model and (model not in get_query_models(query).values()):
             try:
-                tmp = query.join(model)
+                tmp = query
+                if relationships_registry.get(name) is not None:
+                    tmp = query.join(relationships_registry[name])
+
+                tmp = tmp.join(model)
                 if (
                     sqlalchemy_version_cmp('>=', '1.4')
                     and hasattr(tmp, '_compile_state')
